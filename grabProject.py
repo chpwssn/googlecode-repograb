@@ -190,7 +190,7 @@ if options.datadir:
 
 # Grab web pages to get more info about the project
 opener = urllib2.build_opener()
-opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+opener.addheaders = [('User-agent', 'googlecodegrabber')]
 
 #Check to see if the project exists, if the Google Code page exists
 try:
