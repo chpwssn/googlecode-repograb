@@ -13,10 +13,12 @@
 
 import re, urllib2, os, time
 from optparse import OptionParser
+from urllib import urlencode
 
 #Some Config Here
 logging = False
 logFileName = "grabProject.log"
+phoneHomeDomain = "http://archiveapi.nerds.io/"
 
 #Define Error Codes
 ERROR_NO_PROJECT = 1
@@ -27,6 +29,8 @@ ERROR_SOURCE_NOT_PRESENT = 5
 ERROR_NO_DATA_DIR = 6
 ERROR_DATA_DIR_NOT_FOUND = 7
 ERROR_NO_SOURCES_FOUND = 8
+ERROR_URL_ERROR = 9
+ERROR_GIT_VERIFY_FAIL = 10
 
 #Write a string to the log file
 def logString(string):
@@ -85,10 +89,14 @@ def getGitRepo(basecommand):
 	bundleName = options.project+".git."+grabTime+".bundle"
 	print "Generating bundle "+bundleName+" in "+repoDest
 	logString("Generating bundle "+bundleName+" in "+repoDest)
-	os.system("git bundle create "+bundleName+" --branches --tags")
-	os.system("git bundle verify "+bundleName)
-	#TODO: actually verify that the verify properly verified the bundle, with verification
-	os.chdir(baseLocation)
+	os.system("git bundle create "+bundleName+" --all --branches --tags")
+	verifyreturn = os.system("git bundle verify "+bundleName)
+	#TODO: improve actually verify that the verify properly verified the bundle, with verification
+	if not verifyreturn == 0:
+		print "Git bundle verification failed, exiting"
+		logString("Git bundle verification failed, exiting with code "+str(ERROR_GIT_VERIFY_FAIL))
+		quit(ERROR_GIT_VERIFY_FAIL)
+		os.chdir(baseLocation)
 	print "Moving bundle file to data directory"
 	os.system("mv "+repoDest+"/"+bundleName+" "+options.datadir)
 	compressedName = options.project+".git."+grabTime+".tar.gz"
@@ -139,6 +147,21 @@ def getSVNRepo(basecommand):
 	fullcommand = "svnrdump dump "+svntarget+" > "+bundleDest
 	os.system(fullcommand)
 	return [bundleDest]
+
+#Sends the string back to the phone home api for logging instead of sifting through client logs
+def phoneHome(repType,information):
+	global options, phoneHomeDomain
+	if options.phonehome:
+		reqURL = 'http://archiveapi.nerds.io/phonehome/?'+urlencode({"project":options.project,"type":repType,"information":information})
+		try:
+			req = urllib2.Request(reqURL)
+			f = urllib2.urlopen(req)
+			print f.read()
+		#Should do better checking here
+		except:
+			print "Could not phone home, please report error manually."
+			logString("Could not phone home.")
+			
 	
 	
 #Option parsing
@@ -148,6 +171,7 @@ parser = OptionParser(usage, version=__file__+" 0.1")
 parser.add_option("-p", "--project", dest="project",help="Google Code project name", metavar="projectname")
 parser.add_option("-D", "--data-dir", dest="datadir",help="Data directory")
 parser.add_option("-d", "--dry-run", action="store_true", dest="dryrun", help="run without downloading repository")
+parser.add_option("-P", "--phone-home", action="store_true", dest="phonehome", help="send crash reports and other diagnostic information back to "+phoneHomeDomain)
 parser.add_option("-l", "--log", action="store_true", dest="logging", help="log debug info to "+logFileName)
 (options, args) = parser.parse_args()
 
@@ -217,6 +241,12 @@ except urllib2.HTTPError, e:
 		print "Fetching project page responded with: "+str(e.code)
 		logString("Exiting with error code "+str(ERROR_BAD_HTTPRESPONSE))
 		quit(ERROR_BAD_HTTPRESPONSE)
+#Catching URL Errors need to be manually debugged
+except urllib2.URLError, e:
+	print e.reason
+	logString("Exiting with URLError "+str(e.reason)+" and exit code "+str(ERROR_URL_ERROR))
+	phoneHome("crash", "URLError when checking to see if the project exists, error code "+str(ERROR_URL_ERROR))
+	quit(ERROR_URL_ERROR)
 		
 #Check to see if /source/checkout exists for the project
 try:
@@ -243,9 +273,15 @@ except urllib2.HTTPError, e:
 		print "Fetching project source page responded with: "+str(e.code)
 		logString("Exiting with error code "+str(ERROR_BAD_HTTPRESPONSE))
 		quit(ERROR_BAD_HTTPRESPONSE)
+#Catching URL Errors need to be manually debugged
+except urllib2.URLError, e:
+	print e.reason
+	logString("Exiting with URLError "+str(e.reason)+" and exit code "+str(ERROR_URL_ERROR))
+	quit(ERROR_URL_ERROR)
 		
 #If we've found code repositories on the checkout page, we need to grab them using the appropriate method
 if sources:
+	phoneHome("sources",sources)
 	datafiles = set()
 	for hgrepo in sources[0]:
 		for resultfile in getHGRepo(hgrepo):
