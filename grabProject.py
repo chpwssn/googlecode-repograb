@@ -142,7 +142,7 @@ def getSVNRepo(basecommand):
 	
 	
 #Option parsing
-usage = "usage: "+__file__+" [options]"
+usage = "usage: "+__file__+" [options] -p <project name> -D <data directory>"
 
 parser = OptionParser(usage, version=__file__+" 0.1")
 parser.add_option("-p", "--project", dest="project",help="Google Code project name", metavar="projectname")
