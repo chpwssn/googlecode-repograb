@@ -2,11 +2,10 @@
 # Google Code Repository Grabber
 # This tool is meant to be supplied with a Google Code project name and result in the download of the project's source.
 # TODO:
-# Add minimum version checking for dependencies
+# Add minimum version checking for dependencies recommended: "git 1.5.1+ svn 1.7.0+ hg 3.0+ better but anything 1.0+ should work"
 # Catch and respond to too many requests HTTP response
 # Handle source not exsiting
 # Check archive api for connection validation on url error
-# Add verification of re results
 # Add some sort of local size reporting for debugging/analysis 
 # Talk about bundle vs tarball: bundle only? tarball only? both? bundle in the tarball?
 # Handle passing file names to pipeline if necesary 
@@ -14,11 +13,15 @@
 import re, urllib2, os, time
 from optparse import OptionParser
 from urllib import urlencode
+import subprocess
 
 #Some Config Here
 logging = False
 logFileName = "grabProject.log"
 phoneHomeDomain = "http://archiveapi.nerds.io/"
+minimumGitVersion = "1.5.1"
+minimumSVNVersion = "1.7.0"
+minimumHGVersion = "3.0"
 
 #Define Error Codes
 ERROR_NO_PROJECT = 1
@@ -31,6 +34,14 @@ ERROR_DATA_DIR_NOT_FOUND = 7
 ERROR_NO_SOURCES_FOUND = 8
 ERROR_URL_ERROR = 9
 ERROR_GIT_VERIFY_FAIL = 10
+
+#Python cmp function improvement for version compare borrowed from:
+# http://stackoverflow.com/questions/1714027/version-number-comparison
+# Returns zero for equal version numbers, Positive for version1 newer than version2, negative for version1 older than version2
+def versioncompare(version1, version2):
+	def normalize(v):
+		return [int(x) for x in re.sub(r'(\.0+)*$','', v).split(".")]
+	return cmp(normalize(version1), normalize(version2))
 
 #Write a string to the log file
 def logString(string):
@@ -94,7 +105,7 @@ def getGitRepo(basecommand):
 	global options
 	#Lots of assumptions in this section
 	#print os.uname()
-	#We assume the form 'git clone target', this needs to be checked in future versions
+	#We assume the form 'git clone target' but issues should have been flagged by page parse validation
 	grabTime = str(time.time())
 	repoDest = options.datadir+options.project
 	fullcommand = basecommand +" "+repoDest
@@ -109,6 +120,7 @@ def getGitRepo(basecommand):
 	os.system("git bundle create "+bundleName+" --all --branches --tags")
 	verifyreturn = os.system("git bundle verify "+bundleName)
 	#TODO: improve actually verify that the verify properly verified the bundle, with verification
+	#Git bundle verify returns with non-zero if there are missing commits
 	if not verifyreturn == 0:
 		print "Git bundle verification failed, exiting"
 		logString("Git bundle verification failed, exiting with code "+str(ERROR_GIT_VERIFY_FAIL))
@@ -128,7 +140,7 @@ def getGitRepo(basecommand):
 def getHGRepo(basecommand):
 	global options
 	#Lots of assumptions in this section
-	#We assume the form 'hg clone target', this needs to be checked in future versions
+	#We assume the form 'hg clone target' but issues should have been flagged by page parse validation
 	grabTime = str(time.time())
 	repoDest = options.datadir+options.project
 	fullcommand = basecommand +" "+repoDest
@@ -155,7 +167,7 @@ def getHGRepo(basecommand):
 def getSVNRepo(basecommand):
 	global options
 	#Lots of assumptions in this section
-	#We assume the form 'svn checkout target local-dir'
+	#We assume the form 'svn checkout target local-dir' but issues should have been flagged by page parse validation
 	grabTime = str(time.time())
 	bundleDest = options.datadir+options.project+"."+grabTime+".svndump"
 	#We need to strip the target url since we are going to do a svnrdump, not a standard checkout
@@ -203,6 +215,27 @@ if logging:
 		print "Error: Could not open log file."
 		print e.errno
 	logString("Starting run at: "+str(time.time()))
+	
+#Dep Check, probably a better way to do this
+versionre = re.compile(r"version ([0-9.]*)")
+gitversion = versionre.search(subprocess.check_output("git --version", shell=True)).group(1)
+logString("Local Git version: "+gitversion)
+if gitversion:
+	if versioncompare(gitversion,minimumGitVersion) < 0:
+		logString("Git version too low, needs: "+minimumGitVersion)
+		raise Exception("Detected git version of "+gitversion+" is too low, "+minimumGitVersion+" required.")
+svnversion = versionre.search(subprocess.check_output("svn --version", shell=True)).group(1)
+logString("Local SVN version: "+svnversion)
+if svnversion:
+	if versioncompare(svnversion,minimumSVNVersion) < 0:
+		logString("SVN version too low, needs: "+minimumSVNVersion)
+		raise Exception("Detected git version of "+svnversion+" is too low, "+minimumSVNVersion+" required.")
+hgversion = versionre.search(subprocess.check_output("hg --version", shell=True)).group(1)
+logString("Local Mercurial version: "+hgversion)
+if hgversion:
+	if versioncompare(hgversion,minimumHGVersion) < 0:
+		logString("Mercurial version too low, needs: "+minimumHGVersion)
+		raise Exception("Detected Mercurial version of "+hgversion+" is too low, "+minimumHGVersion+" required.")
 	
 #Make sure the project flag is set
 if not options.project:
@@ -298,7 +331,7 @@ except urllib2.URLError, e:
 		
 #If we've found code repositories on the checkout page, we need to grab them using the appropriate method
 if sources:
-	phoneHome("sources",sources)
+	phoneHome("sources",sources) #helps collect the sources discovered in a central location, off by default
 	datafiles = set()
 	for hgrepo in sources[0]:
 		for resultfile in getHGRepo(hgrepo):
