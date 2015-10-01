@@ -2,13 +2,9 @@
 # Google Code Repository Grabber
 # This tool is meant to be supplied with a Google Code project name and result in the download of the project's source.
 # TODO:
-# Add minimum version checking for dependencies recommended: "git 1.5.1+ svn 1.7.0+ hg 3.0+ better but anything 1.0+ should work"
-# Catch and respond to too many requests HTTP response
-# Handle source not exsiting
-# Check archive api for connection validation on url error
-# Add some sort of local size reporting for debugging/analysis 
+# Add some sort of local size reporting for debugging/analysis, maybe send this to the central location for processing as well?
 # Talk about bundle vs tarball: bundle only? tarball only? both? bundle in the tarball?
-# Handle passing file names to pipeline if necesary 
+# Handle passing file names to pipeline if necesary
 
 import re, urllib2, os, time
 from optparse import OptionParser
@@ -34,6 +30,7 @@ ERROR_DATA_DIR_NOT_FOUND = 7
 ERROR_NO_SOURCES_FOUND = 8
 ERROR_URL_ERROR = 9
 ERROR_GIT_VERIFY_FAIL = 10
+ERROR_TOO_MANY_REQ = 11
 
 #Python cmp function improvement for version compare borrowed from:
 # http://stackoverflow.com/questions/1714027/version-number-comparison
@@ -281,6 +278,11 @@ except urllib2.HTTPError, e:
 		print "Fetching project page responded with "+str(e.code)+", project may not exist"
 		logString("Exiting with error code "+str(ERROR_PROJECT_NOT_FOUND))
 		quit(ERROR_PROJECT_NOT_FOUND)
+	if e.code == 429:
+		#We are likely being rate limited with too many requests per RFC 6585
+		print "Got HTTP code "+str(e.code)+", need to slow down"
+		logString("Exiting with error code "+str(ERROR_TOO_MANY_REQ))
+		quit(ERROR_TOO_MANY_REQ)
 	elif e.code == 503:
 		#The service responds with 503, the item should be retried
 		print "Fetching project page responded with "+str(e.code)+", service is under too much load"
@@ -313,6 +315,11 @@ except urllib2.HTTPError, e:
 		print "Fetching project source page responded with "+str(e.code)+", source is not present"
 		logString("Exiting with error code "+str(ERROR_SOURCE_NOT_PRESENT))
 		quit(ERROR_SOURCE_NOT_PRESENT)
+	if e.code == 429:
+		#We are likely being rate limited with too many requests per RFC 6585
+		print "Got HTTP code "+str(e.code)+", need to slow down"
+		logString("Exiting with error code "+str(ERROR_TOO_MANY_REQ))
+		quit(ERROR_TOO_MANY_REQ)
 	elif e.code == 503:
 		#The service responds with 503, the item should be retried
 		print "Fetching project source page responded with "+str(e.code)+", service is under too much load"
