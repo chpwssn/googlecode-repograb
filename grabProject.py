@@ -69,7 +69,24 @@ def parseSourcePage(filecontents):
 	print "Found git results:"
 	print gitres
 	#Validate 
-	#TODO: Add more validation here
+	#HG
+	for hgsource in hgres:
+		hgcommand = re.compile(r"^hg clone https?[^\s]*/")
+		if not hgcommand.search(hgsource):
+			print "Invalid hg clone command, this could be a problem later."
+			logString("Invalid hg clone command: "+hgsource)
+	#SVN 
+	for svnsource in svnres:
+		svncommand = re.compile(r"^svn checkout http[^\s]*/ [^/]*[a-zA-Z0-9]$")
+		if not svncommand.search(svnsource):
+			print "Invalid SVN checkout command, this could be a problem later."
+			logString("Invalid SVN checkout command: "+svnsource)
+	#Git
+	for gitsource in gitres:
+		gitcommand = re.compile(r"^git clone https?[^\s]*/")
+		if not gitcommand.search(gitsource):
+			print "Invalid git clone command, this could be a problem later."
+			logString("Invalid git clone command: "+gitsource)
 	return [hgres, svnres, gitres]
 	
 #Download a Git repository based on the clone command given in the project's /source/checkout page
@@ -96,7 +113,7 @@ def getGitRepo(basecommand):
 		print "Git bundle verification failed, exiting"
 		logString("Git bundle verification failed, exiting with code "+str(ERROR_GIT_VERIFY_FAIL))
 		quit(ERROR_GIT_VERIFY_FAIL)
-		os.chdir(baseLocation)
+	os.chdir(baseLocation)
 	print "Moving bundle file to data directory"
 	os.system("mv "+repoDest+"/"+bundleName+" "+options.datadir)
 	compressedName = options.project+".git."+grabTime+".tar.gz"
@@ -167,7 +184,7 @@ def phoneHome(repType,information):
 #Option parsing
 usage = "usage: "+__file__+" [options] -p <project name> -D <data directory>"
 
-parser = OptionParser(usage, version=__file__+" 0.1")
+parser = OptionParser(usage, version=__file__+" 0.2")
 parser.add_option("-p", "--project", dest="project",help="Google Code project name", metavar="projectname")
 parser.add_option("-D", "--data-dir", dest="datadir",help="Data directory")
 parser.add_option("-d", "--dry-run", action="store_true", dest="dryrun", help="run without downloading repository")
