@@ -79,19 +79,19 @@ def parseSourcePage(filecontents):
 	#Validate 
 	#HG
 	for hgsource in hgres:
-		hgcommand = re.compile(r"^hg clone https?[^\s]*/")
+		hgcommand = re.compile(r"^hg clone https?[^\s]*google[^\s]*/")
 		if not hgcommand.search(hgsource):
 			print "Invalid hg clone command, this could be a problem later."
 			logString("Invalid hg clone command: "+hgsource)
 	#SVN 
 	for svnsource in svnres:
-		svncommand = re.compile(r"^svn checkout http[^\s]*/ [^/]*[a-zA-Z0-9]$")
+		svncommand = re.compile(r"^svn checkout http[^\s]*google[^\s]*/ [^/]*[a-zA-Z0-9]$")
 		if not svncommand.search(svnsource):
 			print "Invalid SVN checkout command, this could be a problem later."
 			logString("Invalid SVN checkout command: "+svnsource)
 	#Git
 	for gitsource in gitres:
-		gitcommand = re.compile(r"^git clone https?[^\s]*/")
+		gitcommand = re.compile(r"^git clone https?[^\s]*google[^\s]*/")
 		if not gitcommand.search(gitsource):
 			print "Invalid git clone command, this could be a problem later."
 			logString("Invalid git clone command: "+gitsource)
