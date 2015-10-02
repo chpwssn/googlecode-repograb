@@ -33,6 +33,7 @@ ERROR_GIT_VERIFY_FAIL = 10
 ERROR_TOO_MANY_REQ = 11
 ERROR_HG_VERIFY_FAIL = 12
 ERROR_GIT_FSCK_FAIL = 13
+ERROR_SVN_VERIFY_FAIL = 14
 
 #Python cmp function improvement for version compare borrowed from:
 # http://stackoverflow.com/questions/1714027/version-number-comparison
@@ -207,24 +208,30 @@ def getSVNRepo(basecommand):
 	#We assume the form 'svn checkout target local-dir' but issues should have been flagged by page parse validation
 	grabTime = str(time.time())
 	repoDest = options.datadir + options.project
-	bundleDest = options.datadir+options.project+"."+grabTime+".svndump"
+	bundleDest = options.datadir+options.project+"."+grabTime+".svndump.bz2"
+	compressedName = options.project+".svn."+grabTime+".tar.gz"
 	#We need to strip the target url since the we need to put it a particular place
 	svnsearch = re.compile(r"(https?://.*/svn/)")
 	svntarget = svnsearch.findall(basecommand)[0]
-	#TODO: figure out how to svnadmin verify with a cloned repo
-	#checkoutcommand = "svn checkout "+svntarget+" "+repoDest
-	#os.system(checkoutcommand)
-	#baseLocation = os.getcwd()
-	#os.chdir(repoDest)
-	fullcommand = "svnrdump dump "+svntarget+" > "+bundleDest
-	os.system(fullcommand)
-	return [bundleDest]
+	dumpcommand = "svnrdump dump "+svntarget+" | bzip2 > "+bundleDest
+	dumpreturn = os.system(dumpcommand)
+	verifydir = options.datadir+options.project+"-svn"
+	os.system("svnadmin create "+verifydir)
+	os.system("bzcat "+bundleDest+" | svnadmin load "+verifydir)
+	verifyreturn = os.system("svnadmin verify "+verifydir)
+	if not verifyreturn == 0:
+		print "Subversion repository verification failed, exiting"
+		logString("Subversion repository verification failed, exiting with exit code "+str(ERROR_SVN_VERIFY_FAIL))
+		quit(ERROR_SVN_VERIFY_FAIL)
+	os.system("tar -czf "+options.datadir+compressedName+" "+verifydir)
+	os.system("rm -rf "+verifydir)
+	return [options.datadir+compressedName,bundleDest]
 
 #Sends the string back to the phone home api for logging instead of sifting through client logs
 def phoneHome(repType,information):
 	global options, phoneHomeDomain
 	if options.phonehome:
-		reqURL = 'http://archiveapi.nerds.io/phonehome/?'+urlencode({"project":options.project,"type":repType,"information":information})
+		reqURL = 'http://archiveapi.nerds.io/phonehome/?'+urlencode({"project":"googlecode-repograb","item":options.project,"type":repType,"information":information})
 		try:
 			req = urllib2.Request(reqURL)
 			f = urllib2.urlopen(req)
