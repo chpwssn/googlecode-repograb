@@ -20,15 +20,17 @@ Mercurial: 3.0+
 	-D DATADIR, --data-dir=DATADIR Data directory
 
 ##Optional Flags
-	--version             show program's version number and exit
- 
- 	-h, --help            show this help message and exit
+	  --version             show program's version number and exit
   
-	-d, --dry-run         run without downloading repository
+	  -h, --help            show this help message and exit
   
-	-P, --phone-home      send crash reports and other diagnostic information back  
-	
-	-l, --log             log debug info to grabProject.log
+	  -d, --dry-run         run without downloading repository
+  
+	  -P, --phone-home      send crash reports and other diagnostic information
+  
+	  -l, --log             log debug info to defined file
+  
+	  --paranoid            Do paranoid repository verification
 
 ##Examples
 Examples write to a data directory "data" and write to the log file.

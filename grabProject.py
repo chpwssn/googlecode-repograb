@@ -31,6 +31,8 @@ ERROR_NO_SOURCES_FOUND = 8
 ERROR_URL_ERROR = 9
 ERROR_GIT_VERIFY_FAIL = 10
 ERROR_TOO_MANY_REQ = 11
+ERROR_HG_VERIFY_FAIL = 12
+ERROR_GIT_FSCK_FAIL = 13
 
 #Python cmp function improvement for version compare borrowed from:
 # http://stackoverflow.com/questions/1714027/version-number-comparison
@@ -111,6 +113,17 @@ def getGitRepo(basecommand):
 	os.system(fullcommand)
 	baseLocation = os.getcwd()
 	os.chdir(repoDest)
+	if options.paranoid:
+		print "Git paranoid fsck check:"
+		logString("Git paranoid fsck check")
+		fsckreturn = os.system("git fsck")
+		if not fsckreturn == 0:
+			print "Git paranoid fsck failed, exiting"
+			logString("Git paranoid fsck failed, exiting with code "+str(ERROR_GIT_FSCK_FAIL))
+			quit(ERROR_GIT_FSCK_FAIL)
+		else:
+			print "Git paranoid fsck passed"
+			logString("Git paranoid fsck passed")
 	bundleName = options.project+".git."+grabTime+".bundle"
 	print "Generating bundle "+bundleName+" in "+repoDest
 	logString("Generating bundle "+bundleName+" in "+repoDest)
@@ -122,6 +135,9 @@ def getGitRepo(basecommand):
 		print "Git bundle verification failed, exiting"
 		logString("Git bundle verification failed, exiting with code "+str(ERROR_GIT_VERIFY_FAIL))
 		quit(ERROR_GIT_VERIFY_FAIL)
+	else:
+		print "Git repository verification passed!"
+		logString("Git repository verification passed")
 	os.chdir(baseLocation)
 	print "Moving bundle file to data directory"
 	os.system("mv "+repoDest+"/"+bundleName+" "+options.datadir)
@@ -146,6 +162,14 @@ def getHGRepo(basecommand):
 	os.system(fullcommand)
 	baseLocation = os.getcwd()
 	os.chdir(repoDest)
+	verifyreturn = os.system("hg verify")
+	if not verifyreturn == 0:
+		print "Mercurial repository verification failed, exiting"
+		logString("Mercurial repository verification failed, exiting with code "+str(ERROR_HG_VERIFY_FAIL))
+		quit(ERROR_HG_VERIFY_FAIL)
+	else:
+		print "Mercurial repository verification passed!"
+		logString("Mercurial repository verification passed")
 	bundleName = options.project+"."+grabTime+".hg"
 	print "Generating bundle "+bundleName+" in "+repoDest
 	os.system("hg bundle --base null "+bundleName)
@@ -158,6 +182,22 @@ def getHGRepo(basecommand):
 	os.system("tar -czf "+options.datadir+compressedName+" "+repoDest)
 	print "Removing raw repository directory from data directory"
 	os.system("rm -rf "+repoDest)
+	if options.paranoid:
+			print "Starting paranoid verification"
+			logString("Starting paranoid verification")
+			paranoidDest = options.datadir+options.project+"-paranoid"
+			unbundlereturn = os.system("hg clone "+options.datadir+bundleName+" "+paranoidDest)
+			os.chdir(paranoidDest)
+			verifyreturn = os.system("hg verify")
+			os.chdir(baseLocation)
+			os.system("rm -rf "+paranoidDest)
+			if not verifyreturn == 0:
+				print "Mercurial repository paranoid verification failed, exiting"
+				logString("Mercurial repository paranoid verification failed, exiting with code "+str(ERROR_HG_VERIFY_FAIL))
+				quit(ERROR_HG_VERIFY_FAIL)
+			else:
+				print "Mercurial repository paranoid verification passed!"
+				logString("Mercurial repository paranoid verification passed")
 	return [options.datadir+compressedName,options.datadir+bundleName]
 	
 #Download a Subversion repository based on the checkout command given in the project's /source/checkout page
@@ -166,10 +206,16 @@ def getSVNRepo(basecommand):
 	#Lots of assumptions in this section
 	#We assume the form 'svn checkout target local-dir' but issues should have been flagged by page parse validation
 	grabTime = str(time.time())
+	repoDest = options.datadir + options.project
 	bundleDest = options.datadir+options.project+"."+grabTime+".svndump"
-	#We need to strip the target url since we are going to do a svnrdump, not a standard checkout
+	#We need to strip the target url since the we need to put it a particular place
 	svnsearch = re.compile(r"(https?://.*/svn/)")
 	svntarget = svnsearch.findall(basecommand)[0]
+	#TODO: figure out how to svnadmin verify with a cloned repo
+	#checkoutcommand = "svn checkout "+svntarget+" "+repoDest
+	#os.system(checkoutcommand)
+	#baseLocation = os.getcwd()
+	#os.chdir(repoDest)
 	fullcommand = "svnrdump dump "+svntarget+" > "+bundleDest
 	os.system(fullcommand)
 	return [bundleDest]
@@ -199,6 +245,8 @@ parser.add_option("-D", "--data-dir", dest="datadir",help="Data directory")
 parser.add_option("-d", "--dry-run", action="store_true", dest="dryrun", help="run without downloading repository")
 parser.add_option("-P", "--phone-home", action="store_true", dest="phonehome", help="send crash reports and other diagnostic information back to "+phoneHomeDomain)
 parser.add_option("-l", "--log", action="store_true", dest="logging", help="log debug info to "+logFileName)
+parser.add_option("--paranoid", action="store_true", dest="paranoid", help="Do paranoid repository verification")
+
 (options, args) = parser.parse_args()
 
 #Parse logging option and open the logging file if enabled or hard coded
