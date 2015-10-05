@@ -34,6 +34,7 @@ ERROR_TOO_MANY_REQ = 11
 ERROR_HG_VERIFY_FAIL = 12
 ERROR_GIT_FSCK_FAIL = 13
 ERROR_SVN_VERIFY_FAIL = 14
+ERROR_EMPTY_REPOSITORY = 15	#Not really an error but we can't do anything with it
 
 #Python cmp function improvement for version compare borrowed from:
 # http://stackoverflow.com/questions/1714027/version-number-comparison
@@ -112,6 +113,10 @@ def getGitRepo(basecommand):
 	print "Executing: "+fullcommand
 	logString("Executing: "+fullcommand)
 	os.system(fullcommand)
+	if not "logs" in os.listdir(repoDest+"/.git/"):
+		print "Repository is empty, exiting"
+		logString("Repository, exiting with code "+str(ERROR_EMPTY_REPOSITORY))
+		quit(ERROR_EMPTY_REPOSITORY)
 	baseLocation = os.getcwd()
 	os.chdir(repoDest)
 	if options.paranoid:
@@ -161,6 +166,11 @@ def getHGRepo(basecommand):
 	print "Executing: "+fullcommand
 	logString("Executing: "+fullcommand)
 	os.system(fullcommand)
+	print os.listdir(repoDest+"/.hg/store")
+	if os.listdir(repoDest) == []:
+		print "Repository is empty, exiting"
+		logString("Repository, exiting with code "+str(ERROR_EMPTY_REPOSITORY))
+		quit(ERROR_EMPTY_REPOSITORY)
 	baseLocation = os.getcwd()
 	os.chdir(repoDest)
 	verifyreturn = os.system("hg verify")
