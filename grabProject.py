@@ -113,13 +113,20 @@ def getGitRepo(basecommand):
 	print "Executing: "+fullcommand
 	logString("Executing: "+fullcommand)
 	os.system(fullcommand)
-	if not "logs" in os.listdir(repoDest+"/.git/"):
+	#if not "logs" in os.listdir(repoDest+"/.git/"):
+	#	print "Repository is empty, exiting"
+	#	logString("Repository, exiting with code "+str(ERROR_EMPTY_REPOSITORY))
+	#	phoneHome("emptyrepo", "logs was not in .git directory") 
+	#	quit(ERROR_EMPTY_REPOSITORY)
+	baseLocation = os.getcwd()
+	os.chdir(repoDest)
+	checkoutreturn = os.system("git checkout")
+	print "Checkout is returning "+str(checkoutreturn)
+	if checkoutreturn == 128 or checkoutreturn == 32768:
 		print "Repository is empty, exiting"
 		logString("Repository, exiting with code "+str(ERROR_EMPTY_REPOSITORY))
 		phoneHome("emptyrepo", "logs was not in .git directory") 
 		quit(ERROR_EMPTY_REPOSITORY)
-	baseLocation = os.getcwd()
-	os.chdir(repoDest)
 	if options.paranoid:
 		print "Git paranoid fsck check:"
 		logString("Git paranoid fsck check")
