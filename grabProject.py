@@ -166,13 +166,16 @@ def getHGRepo(basecommand):
 	print "Executing: "+fullcommand
 	logString("Executing: "+fullcommand)
 	os.system(fullcommand)
-	print os.listdir(repoDest+"/.hg/store")
-	if os.listdir(repoDest) == []:
+	baseLocation = os.getcwd()
+	os.chdir(repoDest)
+	hgheadsexit = os.system("hg heads -c")
+	if not hgheadsexit == 0:
 		print "Repository is empty, exiting"
 		logString("Repository, exiting with code "+str(ERROR_EMPTY_REPOSITORY))
 		quit(ERROR_EMPTY_REPOSITORY)
-	baseLocation = os.getcwd()
-	os.chdir(repoDest)
+		#print hgheadsexit
+		#print os.getcwd()
+		#print repoDest
 	verifyreturn = os.system("hg verify")
 	if not verifyreturn == 0:
 		print "Mercurial repository verification failed, exiting"
