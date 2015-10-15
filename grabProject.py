@@ -116,6 +116,7 @@ def getGitRepo(basecommand):
 	if not "logs" in os.listdir(repoDest+"/.git/"):
 		print "Repository is empty, exiting"
 		logString("Repository, exiting with code "+str(ERROR_EMPTY_REPOSITORY))
+		phoneHome("emptyrepo", "logs was not in .git directory") 
 		quit(ERROR_EMPTY_REPOSITORY)
 	baseLocation = os.getcwd()
 	os.chdir(repoDest)
@@ -126,6 +127,7 @@ def getGitRepo(basecommand):
 		if not fsckreturn == 0:
 			print "Git paranoid fsck failed, exiting"
 			logString("Git paranoid fsck failed, exiting with code "+str(ERROR_GIT_FSCK_FAIL))
+			phoneHome("paranoidfail", "git paranoid fsck failed")
 			quit(ERROR_GIT_FSCK_FAIL)
 		else:
 			print "Git paranoid fsck passed"
@@ -147,10 +149,10 @@ def getGitRepo(basecommand):
 	os.chdir(baseLocation)
 	print "Moving bundle file to data directory"
 	os.system("mv "+repoDest+"/"+bundleName+" "+options.datadir)
-	compressedName = options.project+".git."+grabTime+".tar.gz"
+	compressedName = options.project+".git."+grabTime+".tar.bz2"
 	print "Compressing entire repository to "+compressedName
 	logString("Compressing entire repository to "+compressedName)
-	os.system("tar -czf "+options.datadir+compressedName+" "+repoDest)
+	os.system("tar -cyf "+options.datadir+compressedName+" "+repoDest)
 	print "Removing raw repository directory from data directory"
 	os.system("rm -rf "+repoDest)
 	return [options.datadir+compressedName,options.datadir+bundleName]
@@ -172,6 +174,7 @@ def getHGRepo(basecommand):
 	if not hgheadsexit == 0:
 		print "Repository is empty, exiting"
 		logString("Repository, exiting with code "+str(ERROR_EMPTY_REPOSITORY))
+		phoneHome("emptyrepo", "hg heads returned non zero exit code")
 		quit(ERROR_EMPTY_REPOSITORY)
 		#print hgheadsexit
 		#print os.getcwd()
@@ -190,10 +193,10 @@ def getHGRepo(basecommand):
 	os.chdir(baseLocation)
 	print "Moving bundle file to data directory"
 	os.system("mv "+repoDest+"/"+bundleName+" "+options.datadir)
-	compressedName = options.project+".hg."+grabTime+".tar.gz"
+	compressedName = options.project+".hg."+grabTime+".tar.bz2"
 	print "Compressing entire repository to "+compressedName
 	logString("Compressing entire repository to "+compressedName)
-	os.system("tar -czf "+options.datadir+compressedName+" "+repoDest)
+	os.system("tar -cyf "+options.datadir+compressedName+" "+repoDest)
 	print "Removing raw repository directory from data directory"
 	os.system("rm -rf "+repoDest)
 	if options.paranoid:
@@ -208,6 +211,7 @@ def getHGRepo(basecommand):
 			if not verifyreturn == 0:
 				print "Mercurial repository paranoid verification failed, exiting"
 				logString("Mercurial repository paranoid verification failed, exiting with code "+str(ERROR_HG_VERIFY_FAIL))
+				phoneHome("paranoidfail", "hg verify after extracting from bundle failed")
 				quit(ERROR_HG_VERIFY_FAIL)
 			else:
 				print "Mercurial repository paranoid verification passed!"
@@ -222,7 +226,7 @@ def getSVNRepo(basecommand):
 	grabTime = str(time.time())
 	repoDest = options.datadir + options.project
 	bundleDest = options.datadir+options.project+"."+grabTime+".svndump.bz2"
-	compressedName = options.project+".svn."+grabTime+".tar.gz"
+	compressedName = options.project+".svn."+grabTime+".tar.bz2"
 	#We need to strip the target url since the we need to put it a particular place
 	svnsearch = re.compile(r"(https?://.*/svn/)")
 	svntarget = svnsearch.findall(basecommand)[0]
@@ -236,7 +240,7 @@ def getSVNRepo(basecommand):
 		print "Subversion repository verification failed, exiting"
 		logString("Subversion repository verification failed, exiting with exit code "+str(ERROR_SVN_VERIFY_FAIL))
 		quit(ERROR_SVN_VERIFY_FAIL)
-	os.system("tar -czf "+options.datadir+compressedName+" "+verifydir)
+	os.system("tar -cyf "+options.datadir+compressedName+" "+verifydir)
 	os.system("rm -rf "+verifydir)
 	return [options.datadir+compressedName,bundleDest]
 
