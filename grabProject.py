@@ -327,7 +327,7 @@ if not options.datadir:
 	
 #Make sure the data directory exists
 if not os.path.exists(options.datadir):
-	print "Data directory does not exist, going to die to be safe"
+	print "Data directory "+options.datadir+" does not exist, going to die to be safe"
 	logString("Data directory does not exist, going to die to be safe with error code "+str(ERROR_DATA_DIR_NOT_FOUND))
 	quit(ERROR_DATA_DIR_NOT_FOUND)
 	
