@@ -159,7 +159,7 @@ def getGitRepo(basecommand):
 	compressedName = options.project+".git."+grabTime+".tar.bz2"
 	print "Compressing entire repository to "+compressedName
 	logString("Compressing entire repository to "+compressedName)
-	os.system("tar -cyf "+options.datadir+compressedName+" "+repoDest)
+	os.system("tar -cjf "+options.datadir+compressedName+" "+repoDest)
 	print "Removing raw repository directory from data directory"
 	os.system("rm -rf "+repoDest)
 	return [options.datadir+compressedName,options.datadir+bundleName]
@@ -203,7 +203,7 @@ def getHGRepo(basecommand):
 	compressedName = options.project+".hg."+grabTime+".tar.bz2"
 	print "Compressing entire repository to "+compressedName
 	logString("Compressing entire repository to "+compressedName)
-	os.system("tar -cyf "+options.datadir+compressedName+" "+repoDest)
+	os.system("tar -cjf "+options.datadir+compressedName+" "+repoDest)
 	print "Removing raw repository directory from data directory"
 	os.system("rm -rf "+repoDest)
 	if options.paranoid:
@@ -247,7 +247,7 @@ def getSVNRepo(basecommand):
 		print "Subversion repository verification failed, exiting"
 		logString("Subversion repository verification failed, exiting with exit code "+str(ERROR_SVN_VERIFY_FAIL))
 		quit(ERROR_SVN_VERIFY_FAIL)
-	os.system("tar -cyf "+options.datadir+compressedName+" "+verifydir)
+	os.system("tar -cjf "+options.datadir+compressedName+" "+verifydir)
 	os.system("rm -rf "+verifydir)
 	return [options.datadir+compressedName,bundleDest]
 
