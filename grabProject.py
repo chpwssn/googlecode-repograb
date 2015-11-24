@@ -10,14 +10,8 @@ import re, urllib2, os, time
 from optparse import OptionParser
 from urllib import urlencode
 import subprocess
-
-#Some Config Here
-logging = False
-logFileName = "grabProject.log"
-phoneHomeDomain = "http://archiveapi.nerds.io/"
-minimumGitVersion = "1.5.1"
-minimumSVNVersion = "1.7.0"
-minimumHGVersion = "3.0"
+from depcheck import *
+from config import *
 
 #Define Error Codes
 ERROR_NO_PROJECT = 1
@@ -36,13 +30,6 @@ ERROR_GIT_FSCK_FAIL = 13
 ERROR_SVN_VERIFY_FAIL = 14
 ERROR_EMPTY_REPOSITORY = 15	#Not really an error but we can't do anything with it
 
-#Python cmp function improvement for version compare borrowed from:
-# http://stackoverflow.com/questions/1714027/version-number-comparison
-# Returns zero for equal version numbers, Positive for version1 newer than version2, negative for version1 older than version2
-def versioncompare(version1, version2):
-	def normalize(v):
-		return [int(x) for x in re.sub(r'(\.0+)*$','', v).split(".")]
-	return cmp(normalize(version1), normalize(version2))
 
 #Write a string to the log file
 def logString(string):
@@ -266,7 +253,13 @@ def phoneHome(repType,information):
 			logString("Could not phone home.")
 			
 	
-	
+try:
+	checkDeps()
+except Exception as e:
+	logString(e)
+	print e
+	raise Exception("Dependency check failed.")
+
 #Option parsing
 usage = "usage: "+__file__+" [options] -p <project name> -D <data directory>"
 
@@ -292,27 +285,8 @@ if logging:
 		print e.errno
 	logString("Starting run at: "+str(time.time()))
 	
-#Dep Check, probably a better way to do this
-versionre = re.compile(r"version ([0-9.]*)")
-gitversion = versionre.search(subprocess.check_output("git --version", shell=True)).group(1)
-logString("Local Git version: "+gitversion)
-if gitversion:
-	if versioncompare(gitversion,minimumGitVersion) < 0:
-		logString("Git version too low, needs: "+minimumGitVersion)
-		raise Exception("Detected git version of "+gitversion+" is too low, "+minimumGitVersion+" required.")
-svnversion = versionre.search(subprocess.check_output("svn --version", shell=True)).group(1)
-logString("Local SVN version: "+svnversion)
-if svnversion:
-	if versioncompare(svnversion,minimumSVNVersion) < 0:
-		logString("SVN version too low, needs: "+minimumSVNVersion)
-		raise Exception("Detected git version of "+svnversion+" is too low, "+minimumSVNVersion+" required.")
-hgversion = versionre.search(subprocess.check_output("hg --version", shell=True)).group(1)
-logString("Local Mercurial version: "+hgversion)
-if hgversion:
-	if versioncompare(hgversion,minimumHGVersion) < 0:
-		logString("Mercurial version too low, needs: "+minimumHGVersion)
-		raise Exception("Detected Mercurial version of "+hgversion+" is too low, "+minimumHGVersion+" required.")
-	
+checkDeps()
+
 #Make sure the project flag is set
 if not options.project:
 	print "No project defined, run:\npython "+__file__+" -h\nfor more information"
