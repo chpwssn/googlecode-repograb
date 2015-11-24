@@ -52,10 +52,10 @@ GRAB_TEST = find_executable(
 #
 # Update this each time you make a non-cosmetic change.
 # It will be added to the WARC files and reported to the tracker.
-VERSION = "20150618.02"
-USER_AGENT = 'DerpyGoogleCodeGrab'
-TRACKER_ID = 'googlecode-rsync'
-TRACKER_HOST = 'tracker.nerds.io'
+VERSION = "20151123.02"
+USER_AGENT = 'ArchiveTeam'
+TRACKER_ID = 'googlecodersync'
+TRACKER_HOST = 'tracker.archiveteam.org'
 
 
 ###########################################################################
