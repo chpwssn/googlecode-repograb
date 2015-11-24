@@ -24,46 +24,10 @@ from seesaw.tracker import GetItemFromTracker, PrepareStatsForTracker, \
 	UploadWithTracker, SendDoneToTracker
 from seesaw.util import find_executable
 
-minimumGitVersion = "1.5.1"
-minimumSVNVersion = "1.7.0"
-minimumHGVersion = "3.0"
+sys.path.append(os.getcwd())
+from config import *
+from depcheck import *
 
-#Python cmp function improvement for version compare borrowed from:
-# http://stackoverflow.com/questions/1714027/version-number-comparison
-# Returns zero for equal version numbers, Positive for version1 newer than version2, negative for version1 older than version2
-def versioncompare(version1, version2):
-	def normalize(v):
-		return [int(x) for x in re.sub(r'(\.0+)*$','', v).split(".")]
-	return cmp(normalize(version1), normalize(version2))
-
-#Check dependencies are present and in the minimum versions
-def checkDeps():
-	versionre = re.compile(r"version ([0-9.]*)")
-	gitversion = versionre.search(subprocess.check_output("git --version", shell=True)).group(1)
-	retstring = ""
-	retstring += "Local Git version: "+gitversion
-	if gitversion:
-		if versioncompare(gitversion,minimumGitVersion) < 0:
-			raise Exception("Detected git version of "+gitversion+" is too low, "+minimumGitVersion+" required.")
-	svnversion = versionre.search(subprocess.check_output("svn --version", shell=True)).group(1)
-	retstring += " Local SVN version: "+svnversion
-	if svnversion:
-		if versioncompare(svnversion,minimumSVNVersion) < 0:
-			raise Exception("Detected git version of "+svnversion+" is too low, "+minimumSVNVersion+" required.")
-	hgversion = versionre.search(subprocess.check_output("hg --version", shell=True)).group(1)
-	retstring += " Local Mercurial version: "+hgversion
-	if hgversion:
-		if versioncompare(hgversion,minimumHGVersion) < 0:
-			raise Exception("Detected Mercurial version of "+hgversion+" is too low, "+minimumHGVersion+" required.")
-	return True
-
-checkDeps()
-
-# check the seesaw version
-if StrictVersion(seesaw.__version__) < StrictVersion("0.1.5"):
-	raise Exception("This pipeline needs seesaw version 0.1.5 or higher.")
-if seesaw.runner_type == "Warrior":
-	raise Exception("This pipeline cannot be run on warriors.")
 checkDeps()
 
 ###########################################################################
@@ -87,7 +51,7 @@ GRAB_TEST = find_executable(
 #
 # Update this each time you make a non-cosmetic change.
 # It will be added to the WARC files and reported to the tracker.
-VERSION = "20151123.03"
+VERSION = "20151123.04"
 USER_AGENT = 'ArchiveTeam'
 TRACKER_ID = 'googlecodersync'
 TRACKER_HOST = 'tracker.archiveteam.org'
