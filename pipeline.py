@@ -95,6 +95,16 @@ class CheckIP(SimpleTask):
 		else:
 			self._counter -= 1
 
+class CheckWarrior(SimpleTask):
+	#Check to see if this is being run from a warrior
+	def __init__(self):
+		SimpleTask.__init__(self, "CheckWarrior")
+		self._counter = 0
+
+	def process(self, item):
+		if seesaw.runner_type == "Warrior":
+			raise Exception("This pipeline cannot be run on warriors.")
+
 
 class PrepareDirectories(SimpleTask):
 	def __init__(self):
@@ -201,13 +211,22 @@ project = Project(
 
 pipeline = Pipeline(
 	CheckIP(),
+	CheckWarrior(),
 	GetItemFromTracker("http://%s/%s" % (TRACKER_HOST, TRACKER_ID), downloader, VERSION),
 	PrepareDirectories(),
 	#LimitConcurrent(1,ExternalProcess("Size Test",[RSYNC_TEST,"-t",getRsyncURL("foo"),"-m",MAX_RSYNC])),
 	#LimitConcurrent(1,ExternalProcess("rsync", ["rsync", "--progress", "-av", getRsyncURL("foo"), cleanItem("%(data_dir)s/%(item_name)s")])),
 	ExternalProcess("grabProject.py", ["python", "./grabProject.py", "-D", cleanItem("%(data_dir)s/"), "-p",  projectName(), "-l"]),
-	ExternalProcess("sleep", [ "sleep", str(NumberConfigValue(name="example.sleep", title="Time to sleep", description="The example project will sleep n seconds.", min=1, max=15, default="5").value)]),
 	ExternalProcess("echo", ["echo", "%(data_dir)s/"]),
+	PrepareStatsForTracker(
+		defaults={"downloader": downloader, "version": VERSION},
+		file_groups={
+			"data": [
+				cleanItem("%(data_dir)s")
+			]
+		},
+		id_function=stats_id_function,
+	),
 	LimitConcurrent(NumberConfigValue(min=1, max=4, default="1",
 		name="shared:rsync_threads", title="Rsync threads",
 		description="The maximum number of concurrent uploads."),
@@ -223,15 +242,6 @@ pipeline = Pipeline(
 				"--partial-dir", ".rsync-tmp",
 			]
 		),
-	),
-	PrepareStatsForTracker(
-		defaults={"downloader": downloader, "version": VERSION},
-		file_groups={
-			"data": [
-				cleanItem("%(data_dir)s")
-			]
-		},
-		id_function=stats_id_function,
 	),
 	SendDoneToTracker(
 		tracker_url="http://%s/%s" % (TRACKER_HOST, TRACKER_ID),
