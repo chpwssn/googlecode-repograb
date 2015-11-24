@@ -13,6 +13,24 @@ SVN: 1.7.0+
 
 Mercurial: 3.0+
 
+#Pipeline
+
+Distribution-specific setup
+-------------------------
+### For Debian/Ubuntu:
+
+    adduser --system --group --shell /bin/bash archiveteam
+    apt-get install -y git-core libgnutls-dev screen python-dev python-pip bzip2 zlib1g-dev mercurial subversion
+    pip install seesaw
+    wget http://mercurial.selenic.com/release/mercurial-3.6.1.tar.gz
+    tar -xzf mercurial-3.6.1.tar.gz
+    cd mercurial-3.6.1; make all; make install
+    su -c "cd /home/archiveteam; git clone https://github.com/chpwssn/googlecode-repograb.git; cd googlecode-grab;" archiveteam
+    screen su -c "cd /home/archiveteam/googlecode-repograb/; run-pipeline pipeline.py --concurrent 2 --address '127.0.0.1' YOURNICKHERE" archiveteam
+    [... ctrl+A D to detach ...]
+
+
+# Grab Project
 
 ##Required Flags
 	-p projectname, --project=projectname Google Code project name

@@ -51,7 +51,7 @@ GRAB_TEST = find_executable(
 #
 # Update this each time you make a non-cosmetic change.
 # It will be added to the WARC files and reported to the tracker.
-VERSION = "20151123.04"
+VERSION = "20151123.05"
 USER_AGENT = 'ArchiveTeam'
 TRACKER_ID = 'googlecodersync'
 TRACKER_HOST = 'tracker.archiveteam.org'
@@ -205,7 +205,7 @@ pipeline = Pipeline(
 	PrepareDirectories(),
 	#LimitConcurrent(1,ExternalProcess("Size Test",[RSYNC_TEST,"-t",getRsyncURL("foo"),"-m",MAX_RSYNC])),
 	#LimitConcurrent(1,ExternalProcess("rsync", ["rsync", "--progress", "-av", getRsyncURL("foo"), cleanItem("%(data_dir)s/%(item_name)s")])),
-	ExternalProcess("grabProject.py", ["python", "./grabProject.py", "-D", cleanItem("%(data_dir)s/"), "-p",  projectName(), "-l"]),
+	ExternalProcess("grabProject.py", ["python", "./grabProject.py", "-D", cleanItem("%(data_dir)s/"), "-p",  projectName(), "-l", "--paranoid"]),
 	ExternalProcess("echo", ["echo", "%(data_dir)s/"]),
 	PrepareStatsForTracker(
 		defaults={"downloader": downloader, "version": VERSION},
