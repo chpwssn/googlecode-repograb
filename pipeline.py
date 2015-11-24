@@ -28,7 +28,8 @@ from seesaw.util import find_executable
 # check the seesaw version
 if StrictVersion(seesaw.__version__) < StrictVersion("0.1.5"):
 	raise Exception("This pipeline needs seesaw version 0.1.5 or higher.")
-
+if seesaw.runner_type == "Warrior":
+	raise Exception("This pipeline cannot be run on warriors.")
 
 ###########################################################################
 # Find a useful grabProject executable.
@@ -94,16 +95,6 @@ class CheckIP(SimpleTask):
 			self._counter = 10
 		else:
 			self._counter -= 1
-
-class CheckWarrior(SimpleTask):
-	#Check to see if this is being run from a warrior
-	def __init__(self):
-		SimpleTask.__init__(self, "CheckWarrior")
-		self._counter = 0
-
-	def process(self, item):
-		if seesaw.runner_type == "Warrior":
-			raise Exception("This pipeline cannot be run on warriors.")
 
 
 class PrepareDirectories(SimpleTask):
@@ -201,17 +192,16 @@ def stats_id_function(item):
 # This will be shown in the warrior management panel. The logo should not
 # be too big. The deadline is optional.
 project = Project(
-	title="sourceforgersync",
+	title="googlecodersync",
 	project_html="""
-		<img class="project-logo" alt="Project logo" src="http://a.fsdn.com/con/img/sftheme/logo.png" height="50px" title=""/>
-		<h2>sourceforge.net <span class="links"><a href="http://sourceforge.net/">Website</a> &middot; <a href="http://tracker.archiveteam.org/sourceforgersync/">Leaderboard</a></span></h2>
-		<p>Saving all project from SourceForge. rsyncing all of the source code repositories.</p>
+		<img class="project-logo" alt="Project logo" src="https://code.google.com/images/code_logo.gif" height="50px" title=""/>
+		<h2>code.google.com <span class="links"><a href="https://code.google.com/">Website</a> &middot; <a href="http://tracker.archiveteam.org/googlecodersync/">Leaderboard</a></span></h2>
+		<p>Saving all projects from Google Code. rsyncing all of the source code repositories.</p>
 	"""
 )
 
 pipeline = Pipeline(
 	CheckIP(),
-	CheckWarrior(),
 	GetItemFromTracker("http://%s/%s" % (TRACKER_HOST, TRACKER_ID), downloader, VERSION),
 	PrepareDirectories(),
 	#LimitConcurrent(1,ExternalProcess("Size Test",[RSYNC_TEST,"-t",getRsyncURL("foo"),"-m",MAX_RSYNC])),
